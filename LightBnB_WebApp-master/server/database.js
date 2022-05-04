@@ -1,7 +1,12 @@
 const properties = require('./json/properties.json');
 const users = require('./json/users.json');
+const { Pool } = require('pg');
 
-/// Users
+const pool = new Pool({
+  user: 'jennifermanwell',
+  host: 'localhost',
+  database: 'lightbnb'
+});
 
 /**
  * Get a single user from the database given their email.
@@ -66,13 +71,38 @@ exports.getAllReservations = getAllReservations;
  * @param {*} limit The number of results to return.
  * @return {Promise<[{}]>}  A promise to the properties.
  */
+
 const getAllProperties = function(options, limit = 10) {
-  const limitedProperties = {};
-  for (let i = 1; i <= limit; i++) {
-    limitedProperties[i] = properties[i];
-  }
-  return Promise.resolve(limitedProperties);
-}
+  
+//   const city = options.city;
+//   const minimum_price_per_night = parseInt(options.minimum_price_per_night);
+//   const maximum_price_per_night = parseInt(options.maximum_price_per_night);
+//   const minimum_rating = parseInt(options.minimum_rating);
+
+//   const values = [limit, city, minimum_price_per_night, maximum_price_per_night, minimum_rating];
+  
+//  const queryString2 = `
+//  SELECT DISTINCT properties.* FROM properties 
+//  JOIN property_reviews ON properties.id = property_reviews.property_id
+//  WHERE properties.city = $2 AND
+//        properties.cost_per_night >= $3 AND properties.cost_per_night <= $4 AND
+//        property_reviews >= $5
+//   LIMIT $1;     
+//  `;
+
+  const queryString = `
+    SELECT * FROM properties LIMIT $1;
+  `;
+
+  return pool
+    .query(queryString, [limit])
+    .then((result) => {
+      return result.rows;
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 exports.getAllProperties = getAllProperties;
 
 
