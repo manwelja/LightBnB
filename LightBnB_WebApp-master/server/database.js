@@ -67,39 +67,23 @@ exports.getUserWithId = getUserWithId;
 const addUser =  function(user) {
 
   //query string to add a new user to the database
-  const queryStringAdd = `
+  const queryString = `
      INSERT INTO users (name, email, password) 
-       VALUES ($1, $2, $3);
+       VALUES ($1, $2, $3) RETURNING *;;
   `;
-  //query string to retrieve the new users information from the database
-  const queryStringGet = `
-    SELECT * FROM users 
-      WHERE email = $1;
-`;
-
-  const valuesAdd = [user.name, user.email, user.password];
-  const valuesGet = [user.email];
-
+  const values = [user.name, user.email, user.password];
+ 
   //The first pool is to create a new user
   return pool
-    .query(queryStringAdd, valuesAdd)
+    .query(queryString, values)
     .then((result) => {
-      //The second pool is used to get the new users info so we can get the id which was auto generated
-      //This is only done if no errors were encountered adding the new user to the database
-      return pool
-        .query(queryStringGet, valuesGet)
-        .then((newUser) => {
-          //return the new user object
-          return newUser.rows[0];
-        })
-        .catch((errGet) => {
-          console.log(errGet.message);
-        });
+      //If no errors were encountered add the new user to the database
+      return result.rows[0];
     })
-    .catch((errAdd) => {
-      console.log(errAdd.message);
+    .catch((errGet) => {
+      console.log(errGet.message);
     });
-}
+};
 exports.addUser = addUser;
 
 /// Reservations
@@ -209,9 +193,29 @@ exports.getAllProperties = getAllProperties;
  * @return {Promise<{}>} A promise to the property.
  */
 const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
-}
+  //query string to add a new property to the database
+  //title, description, number_of_bedrooms, number_of_bathrooms, parking_spaces, cost_per_night, thumbnail_photo_url, cover_photo_url, street, country, city, province, post_code, owner_id
+  const queryString = `
+  INSERT INTO properties (` + Object.keys(property) + `) 
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *;;
+`;
+  //put the property variables into an array for the query
+  const values = Object.values(property);
+  
+  //Replace blank integer values in the query parameter array if any
+  if (values[2] === '') values[2] = '0';
+  if (values[3] === '') values[3] = '0';
+  if (values[4] === '') values[4] = '0';
+  if (values[5] === '') values[5] = '0';
+
+  //Create and return the new property
+  return pool
+    .query(queryString, values)
+    .then((result) => {
+      return result.rows[0];
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 exports.addProperty = addProperty;
