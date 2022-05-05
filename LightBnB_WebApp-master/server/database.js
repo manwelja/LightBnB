@@ -14,17 +14,23 @@ const pool = new Pool({
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithEmail = function(email) {
-  let user;
-  for (const userId in users) {
-    user = users[userId];
-    if (user.email.toLowerCase() === email.toLowerCase()) {
-      break;
-    } else {
-      user = null;
-    }
-  }
-  return Promise.resolve(user);
-}
+  const queryString =
+  `SELECT * FROM users
+     WHERE email = $1;  
+  `;
+  //Return a promise containing the user object for the specified email, NULL if the user wasn't found in the database
+  return pool
+    .query(queryString, [email])
+    .then((result) => {
+      if (result.rows.length === 0) {
+        return null;
+      }
+      return result.rows[0];
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 exports.getUserWithEmail = getUserWithEmail;
 
 /**
@@ -33,8 +39,23 @@ exports.getUserWithEmail = getUserWithEmail;
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function(id) {
-  return Promise.resolve(users[id]);
-}
+  const queryString =
+  `SELECT * FROM users
+     WHERE id = $1;  
+  `;
+  //Return a promise containing the user object for the specified user id, NULL if the user wasn't found in the database
+  return pool
+    .query(queryString, [id])
+    .then((result) => {
+      if (result.rows.length === 0) {
+        return null;
+      }
+      return result.rows[0];
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 exports.getUserWithId = getUserWithId;
 
 
@@ -44,10 +65,40 @@ exports.getUserWithId = getUserWithId;
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser =  function(user) {
-  const userId = Object.keys(users).length + 1;
-  user.id = userId;
-  users[userId] = user;
-  return Promise.resolve(user);
+
+  //query string to add a new user to the database
+  const queryStringAdd = `
+     INSERT INTO users (name, email, password) 
+       VALUES ($1, $2, $3);
+  `;
+  //query string to retrieve the new users information from the database
+  const queryStringGet = `
+    SELECT * FROM users 
+      WHERE email = $1;
+`;
+
+  const valuesAdd = [user.name, user.email, user.password];
+  const valuesGet = [user.email];
+
+  //The first pool is to create a new user
+  return pool
+    .query(queryStringAdd, valuesAdd)
+    .then((result) => {
+      //The second pool is used to get the new users info so we can get the id which was auto generated
+      //This is only done if no errors were encountered adding the new user to the database
+      return pool
+        .query(queryStringGet, valuesGet)
+        .then((newUser) => {
+          //return the new user object
+          return newUser.rows[0];
+        })
+        .catch((errGet) => {
+          console.log(errGet.message);
+        });
+    })
+    .catch((errAdd) => {
+      console.log(errAdd.message);
+    });
 }
 exports.addUser = addUser;
 

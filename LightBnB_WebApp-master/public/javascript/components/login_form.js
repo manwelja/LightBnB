@@ -24,6 +24,7 @@ $(() => {
     event.preventDefault();
 
     const data = $(this).serialize();
+
     logIn(data)
       .then(json => {
         console.log(json);
